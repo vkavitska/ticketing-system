@@ -140,14 +140,14 @@ npm run dev                             # Vite on http://localhost:5173, proxies
 
 ```bash
 cd api && npm test    # backend — Vitest integration tests (needs the db container running)
+cd web && npm test    # frontend — Vitest + React Testing Library (jsdom)
 ```
 
 The backend suite spins up a dedicated `ticketing_test` database and exercises
-the HTTP API end to end (auth, teams, epics, tickets, comments).
-
-> The frontend currently has no unit-test runner; it's verified end to end
-> against the API. Adding Vitest + React Testing Library is a possible future
-> enhancement.
+the HTTP API end to end (auth, teams, epics, tickets, comments). The frontend
+suite covers pure logic (board grouping/sort, ticket filter query building,
+label formatting) and components (badges, empty/error states, and the
+create-ticket form's validation + submit) with Testing Library.
 
 ## Adding a new feature
 
