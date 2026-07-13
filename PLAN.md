@@ -154,7 +154,7 @@ Authenticated:
 - Drag → optimistic move via React Query, `PATCH /tickets/:id` state; **on failure, roll back card to previous column + show error toast**.
 - Filters (type, epic) + case-insensitive title search, combined with AND. Usable at 100+ tickets (server-side filter query keeps it light).
 
-**Cross-cutting UX (§11):** loading / empty / success / error states everywhere via React Query statuses; auth guard redirects unauthenticated users to `/login`; token stored in memory (DB is the system of record, not local storage).
+**Cross-cutting UX (§11):** loading / empty / success / error states everywhere via React Query statuses; auth guard redirects unauthenticated users to `/login`; the bearer token is stored in `localStorage` (the app *data* system of record is the DB — `localStorage` holds only the session token, which is allowed). See §11 for the state-management rationale.
 
 **Frontend test (DoD):** RTL test of board rendering + a drag/state-change flow (or a Playwright happy-path: login → board → move card → persists after reload).
 
@@ -187,13 +187,29 @@ Authenticated:
 - Server-side validation is authoritative; client validation is UX-only.
 
 ## 10. Definition of Done — coverage map
-- [ ] Sign up → verification email via SMTP → verify → log in — Milestone 2
+- [x] Sign up → verification email via SMTP → verify → log in — Milestone 2
 - [ ] Teams & epics managed via UI, persisted — Milestones 3, 6
 - [ ] Create/view/edit/delete tickets — Milestone 4
 - [ ] Comments with author + timestamp — Milestone 4
 - [ ] Kanban board shows tickets in correct state columns — Milestone 5
 - [ ] Drag to another column updates server, correct after refresh — Milestone 5
-- [ ] `docker compose up --build` from clean checkout — Milestone 1
+- [x] `docker compose up --build` from clean checkout — Milestone 1
 - [ ] No hard-coded password or committed secret — Milestones 1, 2
-- [ ] Fresh DB = schema + migration metadata only — Milestone 1
+- [x] Fresh DB = schema + migration metadata only — Milestone 1
 - [ ] QA creates all data via UI/API — enforced throughout
+
+## 11. Frontend state-management decisions
+
+Decided during Milestone 2. The guiding split: **server data vs. client state are different problems and get different tools.** Peeling server data off to TanStack Query keeps the remaining client state small enough that no store library is warranted.
+
+| State | Tool | Rationale |
+|---|---|---|
+| Server data (teams, epics, tickets, comments) | **TanStack Query** | Caching, loading/empty/error, refetch, invalidation-on-mutation, and optimistic-update + rollback (exactly the failed-drag-drop requirement). Never mirror this into a client store. |
+| Auth / session (current user, token) | **React Context** (`AuthProvider`) | Low-frequency, few consumers; Context's re-render fan-out is a non-issue here. Token in `localStorage`; user hydrated via `/me`. |
+| Selected team, board filters, title search | **URL search params** (React Router) | Survives refresh, shareable/bookmarkable, back-button works — better than any store for this. |
+| Modals, form drafts | **local `useState`** | Ephemeral; should die with the component. |
+| Toasts / transient errors | **tiny dedicated context** | Trivial; no library needed. |
+
+**No Redux / Zustand.** The classic reason for a global store — caching server data — is handled by React Query. Zustand would only be introduced if a genuinely cross-cutting *ephemeral* need appears (e.g. command palette, multi-route wizard, undo/redo); nothing in the mandatory scope requires it, and it can be added for a single slice later without disturbing this structure.
+
+**Anti-pattern to avoid:** copying server data into a client store and syncing it. Board columns are **derived** from React Query data via `useMemo` (group tickets by state, sort by `modified_at` desc), not stored separately.
