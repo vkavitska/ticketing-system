@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { signup } from "../api/auth";
 import type { ApiError } from "../lib/api";
@@ -12,10 +12,21 @@ export default function SignupPage() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
 
+  // Move focus to the confirmation heading once sign-up succeeds, so keyboard
+  // and screen-reader users aren't stranded on the now-unmounted form.
+  const successHeadingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (done) successHeadingRef.current?.focus();
+  }, [done]);
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
 
+    if (!email) {
+      setError("Enter your email address.");
+      return;
+    }
     if (password.length < 8) {
       setError("Password must be at least 8 characters.");
       return;
@@ -39,7 +50,13 @@ export default function SignupPage() {
   if (done) {
     return (
       <div className={`${ui.card} text-center`}>
-        <h1 className="mb-2 text-2xl font-bold">Check your email</h1>
+        <h1
+          ref={successHeadingRef}
+          tabIndex={-1}
+          className="mb-2 text-2xl font-bold focus:outline-none"
+        >
+          Check your email
+        </h1>
         <p className={ui.muted}>
           We sent a verification link to <strong>{email}</strong>. Open it to
           verify your account, then log in. The link expires in 24 hours.
@@ -69,6 +86,8 @@ export default function SignupPage() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="name@example.com"
           required
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? "signup-error" : undefined}
         />
 
         <label className={ui.label} htmlFor="password">
@@ -83,6 +102,8 @@ export default function SignupPage() {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Minimum 8 characters"
           required
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? "signup-error" : undefined}
         />
 
         <label className={ui.label} htmlFor="confirm">
@@ -96,9 +117,15 @@ export default function SignupPage() {
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
           required
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? "signup-error" : undefined}
         />
 
-        {error && <p className={ui.statusError}>{error}</p>}
+        {error && (
+          <p id="signup-error" role="alert" className={ui.statusError}>
+            {error}
+          </p>
+        )}
 
         <button
           className={`${ui.btnPrimary} ${ui.btnBlock}`}

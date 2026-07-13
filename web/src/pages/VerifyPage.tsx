@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { resendVerification, verifyEmail, type VerifyStatus } from "../api/auth";
 import { ui } from "../lib/ui";
@@ -17,6 +17,13 @@ export default function VerifyPage() {
   const [resendState, setResendState] = useState<"idle" | "sending" | "sent">(
     "idle",
   );
+
+  // Move focus to the result heading once verification resolves, so the
+  // outcome isn't a silent swap for keyboard and screen-reader users.
+  const resultHeadingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (state !== "loading") resultHeadingRef.current?.focus();
+  }, [state]);
 
   useEffect(() => {
     if (!token) {
@@ -40,7 +47,9 @@ export default function VerifyPage() {
   if (state === "loading") {
     return (
       <div className={`${ui.card} text-center`}>
-        <p className={ui.muted}>Verifying your email…</p>
+        <p className={ui.muted} role="status" aria-busy="true">
+          Verifying your email…
+        </p>
       </div>
     );
   }
@@ -48,8 +57,16 @@ export default function VerifyPage() {
   if (state === "verified") {
     return (
       <div className={`${ui.card} text-center`}>
-        <div className={`${badgeBase} border-slate-900`}>✓</div>
-        <h1 className="mb-2 text-2xl font-bold">Email verified</h1>
+        <div className={`${badgeBase} border-slate-900`} aria-hidden="true">
+          ✓
+        </div>
+        <h1
+          ref={resultHeadingRef}
+          tabIndex={-1}
+          className="mb-2 text-2xl font-bold focus:outline-none"
+        >
+          Email verified
+        </h1>
         <p className={ui.muted}>Your account is ready to use.</p>
         <Link className={`${ui.btnPrimary} ${ui.btnBlock}`} to="/login">
           Continue to login
@@ -61,8 +78,17 @@ export default function VerifyPage() {
   // expired or invalid
   return (
     <div className={`${ui.card} text-center`}>
-      <div className={`${badgeBase} border-red-600 text-red-600`}>!</div>
-      <h1 className="mb-2 text-2xl font-bold">
+      <div
+        className={`${badgeBase} border-red-600 text-red-600`}
+        aria-hidden="true"
+      >
+        !
+      </div>
+      <h1
+        ref={resultHeadingRef}
+        tabIndex={-1}
+        className="mb-2 text-2xl font-bold focus:outline-none"
+      >
         Link {state === "expired" ? "expired" : "invalid"}
       </h1>
       <p className={ui.muted}>
@@ -70,7 +96,7 @@ export default function VerifyPage() {
       </p>
 
       {resendState === "sent" ? (
-        <p className={ui.statusOk}>
+        <p role="status" className={ui.statusOk}>
           If an unverified account exists for that email, a new verification
           email has been sent.
         </p>
@@ -79,6 +105,7 @@ export default function VerifyPage() {
           <input
             className={`${ui.input} flex-1`}
             type="email"
+            aria-label="Email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="name@example.com"
