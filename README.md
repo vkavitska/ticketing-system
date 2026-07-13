@@ -60,6 +60,30 @@ never committed; copy `.env.example` to `.env` and adjust.
 
 > For QA/production email, set `SMTP_HOST=relay1.dataart.com` and the appropriate port.
 
+## Technology choices
+
+Each tool is chosen for a specific job:
+
+| Technology | Where | Purpose |
+| ---------- | ----- | ------- |
+| **React + TypeScript** | `web/` | SPA UI, fully typed |
+| **Vite** | `web/` | Dev server (HMR) + production bundler |
+| **Tailwind CSS** | `web/` | Styling; shared class tokens in `src/lib/ui.ts` keep it consistent without a component library |
+| **TanStack Query** | `web/` | Server-state cache, loading/empty/error states, and optimistic drag-drop with rollback. The DB is the source of truth — server data is never mirrored into a client store |
+| **React Router** | `web/` | Client-side routing + the protected-route guard |
+| **@dnd-kit/core** | `web/` | Accessible (pointer **and** keyboard) drag-and-drop for the Kanban board |
+| **Node.js + TypeScript** | `api/` | Backend runtime, fully typed |
+| **Fastify** | `api/` | HTTP server, routing, and a single error handler that renders a consistent `{ error: { code, message } }` envelope |
+| **Zod** | `api/` | Request validation at the route boundary; server-side validation is authoritative |
+| **Prisma** | `api/` | Type-safe DB access + schema/migrations (`prisma/schema.prisma`) |
+| **PostgreSQL** | `db` | Relational store; referential integrity (FK `RESTRICT`/`CASCADE`) backs the delete/conflict rules |
+| **Argon2id** | `api/` | Password hashing |
+| **JSON Web Tokens** | `api/` | Stateless bearer auth; the token is the only thing kept in `localStorage` |
+| **Nodemailer + MailHog** | `api/` + `mailhog` | Email verification; MailHog catches all dev mail (see above) |
+| **Vitest** | `api/` | Backend integration tests against a dedicated test database |
+| **nginx** | `web/` (prod image) | Serves the built SPA and proxies `/api` to the backend |
+| **Docker Compose** | root | One-command orchestration of db + api + web + mailhog |
+
 ## Project layout
 
 ```
@@ -74,25 +98,99 @@ never committed; copy `.env.example` to `.env` and adjust.
     └── src/
 ```
 
-## Local development (without Docker)
+## Local development (per tier, without full Docker)
 
-Optional — for iterating on a single tier. Requires Node.js 22+ and a reachable
-PostgreSQL instance.
+`docker compose up --build` is the simplest way to run everything. For faster
+iteration on a single tier, run it directly with Vite/tsx hot-reload. Requires
+**Node.js 22+**.
+
+You still need a database. The easiest option is to run just the Postgres
+container from the compose file and point the API at it:
 
 ```bash
-# Backend
-cd api && npm install && npm run dev
-
-# Frontend (in another terminal) — proxies /api to http://localhost:3000
-cd web && npm install && npm run dev
+docker compose up -d db        # Postgres on localhost:5432 (+ mailhog for email)
+docker compose up -d mailhog
 ```
+
+**Backend** (`api/`):
+
+```bash
+cd api
+npm install
+cp ../.env.example .env                 # or export the vars below
+npx prisma generate                     # generate the Prisma client
+npx prisma migrate deploy               # apply migrations to the database
+npm run dev                             # tsx watch — API on http://localhost:3000
+```
+
+Key env vars for local runs (see `.env.example` for the full list):
+`DATABASE_URL`, `JWT_SECRET`, `APP_BASE_URL`, `SMTP_HOST`/`SMTP_PORT`.
+
+**Frontend** (`web/`):
+
+```bash
+cd web
+npm install
+npm run dev                             # Vite on http://localhost:5173, proxies /api → :3000
+```
+
+> Changes are live in the dev servers immediately. But the **Docker images do
+> not rebuild on their own** — after merging new work, run
+> `docker compose up -d --build` to see it at http://localhost:8080.
 
 ## Tests
 
 ```bash
-cd api && npm test    # backend
-cd web && npm test    # frontend
+cd api && npm test    # backend — Vitest integration tests (needs the db container running)
 ```
+
+The backend suite spins up a dedicated `ticketing_test` database and exercises
+the HTTP API end to end (auth, teams, epics, tickets, comments).
+
+> **Frontend tests are not set up yet** (`web`'s `npm test` currently has no
+> runner). Adding Vitest + React Testing Library is the remaining Milestone 7
+> work.
+
+## Adding a new feature
+
+The codebase follows a consistent layering. Adding, say, a new resource or
+field means touching the same files in the same order.
+
+**Backend (`api/src/`)** — build outward from the data:
+
+1. **Schema change?** Edit `prisma/schema.prisma`, then
+   `npx prisma migrate dev --name <change>` to create + apply a migration and
+   regenerate the client. Migrations are committed and run automatically on
+   container start.
+2. **Validation** — add a Zod schema in `schemas/` for the request body/query.
+   Server-side validation is authoritative.
+3. **Business logic** — add a function in `services/`. Keep DB access and rules
+   here; translate Prisma errors into `AppError`s (`badRequest`, `notFound`,
+   `conflict`, …) so the error envelope stays consistent.
+4. **Route** — add the handler in `routes/`, parse input with the Zod schema,
+   call the service, and register the route plugin in `app.ts` (guard it with
+   `authGuard` unless it's public).
+5. **Test** — add a Vitest file in `tests/` that drives the new endpoint via
+   `app.inject` (the HTTP seam), following the existing tests.
+
+**Frontend (`web/src/`)** — build inward from the API:
+
+1. **API client** — add typed functions in `api/` using the `apiFetch` wrapper
+   (mirrors `api/tickets.ts`).
+2. **Data** — call them with TanStack Query (`useQuery`/`useMutation`), and
+   `invalidateQueries` on mutation. Derive view state with `useMemo`; don't copy
+   server data into local state.
+3. **UI** — build with the shared class tokens in `lib/ui.ts` and the shared
+   components (`Modal`, `Toast`, `EmptyState`, `ErrorState`, `Skeleton`,
+   `Badge`). Cover loading / empty / success / validation / error states, and
+   keep forms/dialogs accessible (labels, `role="alert"`, focus handling).
+4. **Route** — add it in `App.tsx` (wrap in `ProtectedRoute` if it needs auth)
+   and, if it's a top-level destination, add a link in `AppHeader`.
+
+**Workflow:** branch off `main` → implement → `npm run build` (typecheck +
+bundle) and `npm test` (backend) → run the app and verify the change end to end
+→ open a PR into `main`. After merging, `docker compose up -d --build` to see it
+in the running app.
 
 ## Implementation status
 
@@ -100,6 +198,6 @@ cd web && npm test    # frontend
 - [x] **Milestone 2** — authentication & email verification
 - [x] **Milestone 3** — teams & epics
 - [x] **Milestone 4** — tickets & comments
-- [ ] Milestone 5 — Kanban board (drag & drop)
-- [ ] Milestone 6 — screen polish & UX states
-- [ ] Milestone 7 — automated tests & docs
+- [x] **Milestone 5** — Kanban board (drag & drop)
+- [x] **Milestone 6** — screen polish & UX states
+- [ ] Milestone 7 — automated tests & docs _(docs done; frontend test runner pending)_
