@@ -90,6 +90,17 @@ describe("comments", () => {
     expect(res.statusCode).toBe(404);
   });
 
+  it("404s (not 500) for a malformed ticket id on the comments endpoints", async () => {
+    const list = await app.inject({
+      method: "GET",
+      url: "/tickets/not-a-uuid/comments",
+      headers: authHeader,
+    });
+    expect(list.statusCode).toBe(404);
+    const post = await postComment("not-a-uuid", "hi");
+    expect(post.statusCode).toBe(404);
+  });
+
   it("rejects an empty comment body (400)", async () => {
     const ticket = await createTicket();
     const res = await postComment(ticket.id, "   ");
