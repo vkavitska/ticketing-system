@@ -34,6 +34,18 @@ The API applies database migrations automatically on startup, then begins
 serving. A freshly started database contains only the schema and migration
 metadata — no seed or sample data. All test data is created through the UI/API.
 
+## Email verification in dev
+
+In development, **no real email is sent** — all outgoing mail is captured by the
+**MailHog** container, not delivered to real inboxes. So after signing up at
+http://localhost:8080/signup you won't receive anything in your actual mailbox.
+
+To verify a dev account, open the **MailHog inbox at http://localhost:8025**,
+click the “Verify your Ticket Tracker account” message, and follow the link
+inside — then log in. Verification links are single-use and expire in 24 hours,
+and each resend/re-signup invalidates earlier links, so always use the newest
+message.
+
 ## Configuration
 
 All configuration is via environment variables (see `.env.example`). Secrets are
@@ -85,9 +97,9 @@ cd web && npm test    # frontend
 ## Implementation status
 
 - [x] **Milestone 1** — scaffold, Docker Compose, database schema + migrations, health endpoints
-- [ ] Milestone 2 — authentication & email verification
-- [ ] Milestone 3 — teams & epics
-- [ ] Milestone 4 — tickets & comments
+- [x] **Milestone 2** — authentication & email verification
+- [x] **Milestone 3** — teams & epics
+- [x] **Milestone 4** — tickets & comments
 - [ ] Milestone 5 — Kanban board (drag & drop)
 - [ ] Milestone 6 — screen polish & UX states
 - [ ] Milestone 7 — automated tests & docs
