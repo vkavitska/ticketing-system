@@ -58,7 +58,7 @@ export default function TeamsPage() {
     teams.find((t) => t.id === teamId)?.name ?? "";
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-slate-50">
       <AppHeader />
       <main className="mx-auto max-w-6xl px-4 py-6">
         <div className="grid gap-4 md:grid-cols-[320px_1fr]">

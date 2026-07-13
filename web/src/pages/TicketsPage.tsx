@@ -3,8 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import TicketFormModal from "../components/TicketFormModal";
+import EmptyState from "../components/EmptyState";
+import ErrorState from "../components/ErrorState";
+import Skeleton from "../components/Skeleton";
+import { StateBadge, TypeBadge } from "../components/Badge";
 import { ui } from "../lib/ui";
-import { stateLabel, typeLabel, formatDateTime } from "../lib/format";
+import { typeLabel, formatDateTime } from "../lib/format";
 import { listTeams } from "../api/teams";
 import { listEpics } from "../api/epics";
 import {
@@ -69,7 +73,7 @@ export default function TicketsPage() {
   const selectedTeam = teams.find((t) => t.id === teamId) ?? null;
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-slate-50">
       <AppHeader />
       <main className="mx-auto max-w-5xl px-4 py-6">
         <div className="mb-4 flex items-center justify-between">
@@ -85,11 +89,11 @@ export default function TicketsPage() {
         </div>
 
         {teams.length === 0 && !teamsQuery.isPending ? (
-          <div className={`${ui.panel} p-8 text-center`}>
-            <p className="text-sm font-medium text-slate-900">No teams yet</p>
-            <p className="mt-1 text-sm text-slate-500">
-              Create a team on the Teams tab before adding tickets.
-            </p>
+          <div className={ui.panel}>
+            <EmptyState
+              title="No teams yet"
+              description="Create a team on the Teams tab before adding tickets."
+            />
           </div>
         ) : (
           <>
@@ -167,28 +171,34 @@ export default function TicketsPage() {
 
             <div className={`${ui.panel} p-2`}>
               {ticketsQuery.isPending && (
-                <p className="px-3 py-8 text-center text-sm text-slate-500">
-                  Loading tickets…
-                </p>
+                <div aria-busy="true" className="flex flex-col gap-1 p-1">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <Skeleton key={i} className="h-11 w-full" />
+                  ))}
+                </div>
               )}
               {ticketsQuery.isError && (
-                <div className="px-3 py-8 text-center">
-                  <p className={ui.statusError}>Couldn’t load tickets.</p>
-                  <button
-                    type="button"
-                    className={`${ui.btn} ${ui.btnSm} mt-3`}
-                    onClick={() => ticketsQuery.refetch()}
-                  >
-                    Retry
-                  </button>
-                </div>
+                <ErrorState
+                  message="Couldn’t load tickets."
+                  onRetry={() => ticketsQuery.refetch()}
+                />
               )}
               {!ticketsQuery.isPending &&
                 !ticketsQuery.isError &&
                 tickets.length === 0 && (
-                  <p className="px-3 py-8 text-center text-sm text-slate-500">
-                    No tickets match. Create one to get started.
-                  </p>
+                  <EmptyState
+                    title="No tickets"
+                    description="Nothing matches these filters yet. Create a ticket to get started."
+                    action={
+                      <button
+                        type="button"
+                        className={ui.btnPrimary}
+                        onClick={() => setShowCreate(true)}
+                      >
+                        + New ticket
+                      </button>
+                    }
+                  />
                 )}
               {tickets.length > 0 && (
                 <ul className="flex flex-col gap-1">
@@ -199,15 +209,15 @@ export default function TicketsPage() {
                         className={`${ui.listRow} w-full`}
                         onClick={() => navigate(`/tickets/${t.id}`)}
                       >
-                        <span className={ui.badge}>{typeLabel(t.type)}</span>
+                        <TypeBadge type={t.type} />
                         <span className="flex-1 truncate font-medium">
                           {t.title}
                         </span>
-                        <span className={ui.badge}>{stateLabel(t.state)}</span>
+                        <StateBadge state={t.state} />
                         <span className="hidden w-28 truncate text-xs text-slate-500 sm:block">
                           {epicTitle(t.epicId)}
                         </span>
-                        <span className="hidden w-36 shrink-0 text-right text-xs text-slate-400 md:block">
+                        <span className="hidden w-36 shrink-0 text-right text-xs tabular-nums text-slate-400 md:block">
                           {formatDateTime(t.modifiedAt)}
                         </span>
                       </button>

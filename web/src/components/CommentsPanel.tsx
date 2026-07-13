@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "./Toast";
+import Skeleton from "./Skeleton";
 import { ui } from "../lib/ui";
 import { formatDateTime } from "../lib/format";
 import { addComment, listComments } from "../api/comments";
@@ -60,7 +61,12 @@ export default function CommentsPanel({ ticketId, currentUserId }: Props) {
 
       <div className="flex-1 p-4">
         {query.isPending && (
-          <p className="text-sm text-slate-500">Loading comments…</p>
+          <div aria-busy="true" className="space-y-3">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="mt-4 h-3 w-20" />
+            <Skeleton className="h-4 w-5/6" />
+          </div>
         )}
         {query.isError && (
           <div>
@@ -85,7 +91,7 @@ export default function CommentsPanel({ ticketId, currentUserId }: Props) {
                   <span className="font-semibold text-slate-700">
                     {authorLabel(c.authorId, currentUserId)}
                   </span>{" "}
-                  · {formatDateTime(c.createdAt)}
+                  · <span className="tabular-nums">{formatDateTime(c.createdAt)}</span>
                 </p>
                 <p className="mt-1 whitespace-pre-wrap text-sm">{c.body}</p>
               </li>

@@ -1,3 +1,6 @@
+import EmptyState from "./EmptyState";
+import ErrorState from "./ErrorState";
+import Skeleton from "./Skeleton";
 import { ui } from "../lib/ui";
 import type { Team } from "../api/teams";
 import type { Epic } from "../api/epics";
@@ -42,39 +45,26 @@ export default function EpicList({
 
       <div className="p-4">
         {!team && (
-          <p className="py-12 text-center text-sm text-slate-500">
-            Select a team to view its epics.
-          </p>
+          <EmptyState title="Select a team to view its epics." />
         )}
 
         {team && loading && (
-          <p className="py-12 text-center text-sm text-slate-500">
-            Loading epics…
-          </p>
+          <div aria-busy="true" className="flex flex-col gap-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
+          </div>
         )}
 
         {team && error && !loading && (
-          <div className="py-12 text-center">
-            <p className={ui.statusError}>Couldn&rsquo;t load epics.</p>
-            <button
-              type="button"
-              className={`${ui.btn} ${ui.btnSm} mt-3`}
-              onClick={onRetry}
-            >
-              Retry
-            </button>
-          </div>
+          <ErrorState message="Couldn’t load epics." onRetry={onRetry} />
         )}
 
         {team && !loading && !error && epics.length === 0 && (
-          <div className="py-12 text-center">
-            <p className="text-sm font-medium text-slate-900">
-              No epics in this team yet
-            </p>
-            <p className="mt-1 text-sm text-slate-500">
-              Create an epic to organize its tickets.
-            </p>
-          </div>
+          <EmptyState
+            title="No epics in this team yet"
+            description="Create an epic to organize its tickets."
+          />
         )}
 
         {team && !loading && !error && epics.length > 0 && (
