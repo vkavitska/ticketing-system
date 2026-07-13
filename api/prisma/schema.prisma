@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TicketType {
+  bug
+  feature
+  fix
+}
+
+enum TicketState {
+  new
+  ready_for_implementation
+  in_progress
+  ready_for_acceptance
+  done
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique // stored trimmed + lowercased for case-insensitive uniqueness
+  passwordHash String   @map("password_hash") // Argon2id
+  isVerified   Boolean  @default(false) @map("is_verified")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  modifiedAt   DateTime @updatedAt @map("modified_at") @db.Timestamptz(6)
+
+  verificationTokens EmailVerificationToken[]
+  tickets            Ticket[]
+  comments           Comment[]
+
+  @@map("users")
+}
+
+model EmailVerificationToken {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  tokenHash  String    @map("token_hash") // store hash of token, never the raw token
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(6)
+  consumedAt DateTime? @map("consumed_at") @db.Timestamptz(6) // single-use marker
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("email_verification_tokens")
+}
+
+model Team {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String // unique case-insensitively; enforced by a lower(name) index (see migration)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  modifiedAt DateTime @updatedAt @map("modified_at") @db.Timestamptz(6)
+
+  epics   Epic[]
+  tickets Ticket[]
+
+  @@map("teams")
+}
+
+model Epic {
+  id          String   @id @default(uuid()) @db.Uuid
+  teamId      String   @map("team_id") @db.Uuid // immutable after create (enforced in service)
+  title       String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  modifiedAt  DateTime @updatedAt @map("modified_at") @db.Timestamptz(6)
+
+  team    Team     @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  tickets Ticket[]
+
+  @@index([teamId])
+  @@map("epics")
+}
+
+model Ticket {
+  id          String      @id @default(uuid()) @db.Uuid
+  teamId      String      @map("team_id") @db.Uuid
+  epicId      String?     @map("epic_id") @db.Uuid // must be null or an epic in the same team
+  type        TicketType
+  state       TicketState @default(new)
+  title       String
+  body        String
+  createdById String      @map("created_by") @db.Uuid
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  // NOTE: modifiedAt is set explicitly in the service (NOT @updatedAt) so that
+  // no-op saves and new comments do not advance it, per the spec.
+  modifiedAt  DateTime    @default(now()) @map("modified_at") @db.Timestamptz(6)
+
+  team      Team      @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  epic      Epic?     @relation(fields: [epicId], references: [id], onDelete: Restrict)
+  createdBy User      @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  comments  Comment[]
+
+  @@index([teamId])
+  @@index([epicId])
+  @@map("tickets")
+}
+
+model Comment {
+  id        String   @id @default(uuid()) @db.Uuid
+  ticketId  String   @map("ticket_id") @db.Uuid
+  authorId  String   @map("author_id") @db.Uuid
+  body      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author User   @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([ticketId])
+  @@map("comments")
+}
