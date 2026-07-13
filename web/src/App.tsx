@@ -6,6 +6,8 @@ import LoginPage from "./pages/LoginPage";
 import VerifyPage from "./pages/VerifyPage";
 import BoardPlaceholderPage from "./pages/BoardPlaceholderPage";
 import TeamsPage from "./pages/TeamsPage";
+import TicketsPage from "./pages/TicketsPage";
+import TicketDetailPage from "./pages/TicketDetailPage";
 
 export default function App() {
   return (
@@ -28,6 +30,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <TeamsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tickets"
+            element={
+              <ProtectedRoute>
+                <TicketsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tickets/:id"
+            element={
+              <ProtectedRoute>
+                <TicketDetailPage />
               </ProtectedRoute>
             }
           />
