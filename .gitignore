@@ -5,3 +5,8 @@ build/
 *.log
 .DS_Store
 coverage/
+
+# Agent skills / tooling (personal, not shared via repo)
+.agents/
+.claude/
+skills-lock.json
