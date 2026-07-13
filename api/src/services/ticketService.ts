@@ -7,9 +7,20 @@ import type {
   UpdateTicketInput,
 } from "../schemas/ticket";
 
+/** Throws 400 team_not_found unless the team exists. */
+async function assertTeamExists(teamId: string): Promise<void> {
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: { id: true },
+  });
+  if (!team) throw badRequest("Team not found", "team_not_found");
+}
+
 /**
  * Validates that an epic (when set) exists and belongs to the given team.
- * Throws 400 epic_not_found / epic_team_mismatch otherwise.
+ * Throws 400 epic_not_found / epic_team_mismatch otherwise. Assumes the team
+ * has already been checked, so a missing team is reported as team_not_found
+ * rather than being misattributed to the epic.
  */
 async function assertEpicInTeam(
   epicId: string | null | undefined,
@@ -32,6 +43,7 @@ export function listTickets(filters: ListTicketsQuery = {}): Promise<Ticket[]> {
       teamId: filters.teamId,
       type: filters.type,
       epicId: filters.epicId,
+      // Search is title-only by spec (PLAN.md: "case-insensitive title search").
       title: filters.search
         ? { contains: filters.search, mode: "insensitive" }
         : undefined,
@@ -50,29 +62,19 @@ export async function createTicket(
   input: CreateTicketInput,
   userId: string,
 ): Promise<Ticket> {
+  await assertTeamExists(input.teamId);
   await assertEpicInTeam(input.epicId, input.teamId);
-  try {
-    return await prisma.ticket.create({
-      data: {
-        teamId: input.teamId,
-        type: input.type,
-        state: input.state ?? "new",
-        title: input.title,
-        body: input.body,
-        epicId: input.epicId ?? null,
-        createdById: userId,
-      },
-    });
-  } catch (err) {
-    // FK RESTRICT on tickets.team_id → referenced team does not exist.
-    if (
-      err instanceof Prisma.PrismaClientKnownRequestError &&
-      err.code === "P2003"
-    ) {
-      throw badRequest("Team not found", "team_not_found");
-    }
-    throw err;
-  }
+  return prisma.ticket.create({
+    data: {
+      teamId: input.teamId,
+      type: input.type,
+      state: input.state ?? "new",
+      title: input.title,
+      body: input.body,
+      epicId: input.epicId ?? null,
+      createdById: userId,
+    },
+  });
 }
 
 export async function updateTicket(
@@ -84,6 +86,11 @@ export async function updateTicket(
   const nextTeamId = input.teamId ?? existing.teamId;
   const nextEpicId =
     input.epicId !== undefined ? input.epicId : existing.epicId;
+  // Validate the target team first (a missing team must report team_not_found,
+  // not be misattributed to the epic below). Only when it actually changes.
+  if (input.teamId !== undefined && input.teamId !== existing.teamId) {
+    await assertTeamExists(input.teamId);
+  }
   // The resulting (team, epic) pair must stay consistent, e.g. after a team
   // change that would strand an epic from the old team.
   await assertEpicInTeam(nextEpicId, nextTeamId);
@@ -108,17 +115,7 @@ export async function updateTicket(
   if (!changed) return existing;
 
   data.modifiedAt = new Date();
-  try {
-    return await prisma.ticket.update({ where: { id }, data });
-  } catch (err) {
-    if (
-      err instanceof Prisma.PrismaClientKnownRequestError &&
-      err.code === "P2003"
-    ) {
-      throw badRequest("Team not found", "team_not_found");
-    }
-    throw err;
-  }
+  return prisma.ticket.update({ where: { id }, data });
 }
 
 export async function deleteTicket(id: string): Promise<void> {

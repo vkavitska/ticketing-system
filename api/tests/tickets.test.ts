@@ -129,6 +129,20 @@ describe("tickets create + read", () => {
     expect(res.statusCode).toBe(400);
   });
 
+  it("reports team_not_found when the team is missing even if an epic is supplied", async () => {
+    const teamA = await mkTeam("Alpha");
+    const epicA = await mkEpic(teamA, "Auth");
+    // epic exists (in team A) but the ticket's team does not exist.
+    const res = await app.inject({
+      method: "POST",
+      url: "/tickets",
+      headers: authHeader,
+      payload: { ...base(randomUUID()), epicId: epicA },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe("team_not_found");
+  });
+
   it("rejects a missing title (400)", async () => {
     const teamId = await mkTeam("Alpha");
     const { title: _omit, ...rest } = base(teamId);
@@ -277,6 +291,26 @@ describe("tickets update + delete", () => {
   it("404s when patching an unknown ticket", async () => {
     const res = await patch(randomUUID(), { state: "done" });
     expect(res.statusCode).toBe(404);
+  });
+
+  it("returns 404 (not 500) for a malformed, non-UUID id", async () => {
+    const get = await app.inject({
+      method: "GET",
+      url: "/tickets/not-a-uuid",
+      headers: authHeader,
+    });
+    expect(get.statusCode).toBe(404);
+    const res = await patch("not-a-uuid", { state: "done" });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("reports team_not_found (not epic_team_mismatch) when moving to a nonexistent team", async () => {
+    const teamA = await mkTeam("Alpha");
+    const epicA = await mkEpic(teamA, "Auth");
+    const ticket = await createTicket({ ...base(teamA), epicId: epicA });
+    const res = await patch(ticket.id, { teamId: randomUUID() });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe("team_not_found");
   });
 
   it("deletes a ticket, then 404 on re-fetch", async () => {

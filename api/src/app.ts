@@ -1,5 +1,6 @@
 import Fastify, { FastifyInstance } from "fastify";
 import { ZodError } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "./db";
 import { AppError } from "./errors";
 import { authRoutes } from "./routes/auth";
@@ -33,6 +34,17 @@ export function buildApp(): FastifyInstance {
       reply.code(error.statusCode);
       return reply.send({
         error: { code: error.code, message: error.message },
+      });
+    }
+    // A malformed path param against a uuid column (e.g. GET /tickets/abc)
+    // surfaces as P2023 — treat it as a missing resource, not a 500.
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2023"
+    ) {
+      reply.code(404);
+      return reply.send({
+        error: { code: "not_found", message: "Resource not found" },
       });
     }
     request.log.error(error);
