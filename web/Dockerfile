@@ -1,6 +1,8 @@
 # Build stage: compile the SPA
 FROM node:22-alpine AS build
 WORKDIR /app
+# libc6-compat helps native build deps (e.g. Tailwind's oxide) run on musl/Alpine.
+RUN apk add --no-cache libc6-compat
 COPY package*.json ./
 RUN npm install
 COPY . .
