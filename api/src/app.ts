@@ -3,6 +3,8 @@ import { ZodError } from "zod";
 import { prisma } from "./db";
 import { AppError } from "./errors";
 import { authRoutes } from "./routes/auth";
+import { teamRoutes } from "./routes/teams";
+import { epicRoutes } from "./routes/epics";
 
 /**
  * Builds the Fastify application. Kept separate from the server bootstrap so
@@ -58,6 +60,12 @@ export function buildApp(): FastifyInstance {
 
   // Authentication routes (signup/verify/resend/login are public; /me is guarded).
   app.register(authRoutes);
+
+  // Teams CRUD (all routes require authentication).
+  app.register(teamRoutes);
+
+  // Epics CRUD (all routes require authentication).
+  app.register(epicRoutes);
 
   return app;
 }
