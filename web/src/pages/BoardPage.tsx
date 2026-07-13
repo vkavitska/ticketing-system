@@ -14,6 +14,10 @@ import AppHeader from "../components/AppHeader";
 import BoardColumn from "../components/BoardColumn";
 import TicketCard from "../components/TicketCard";
 import TicketFormModal from "../components/TicketFormModal";
+import EmptyState from "../components/EmptyState";
+import ErrorState from "../components/ErrorState";
+import Skeleton from "../components/Skeleton";
+import { TypeBadge } from "../components/Badge";
 import { useToast } from "../components/Toast";
 import { ui } from "../lib/ui";
 import { stateLabel, typeLabel } from "../lib/format";
@@ -138,7 +142,7 @@ export default function BoardPage() {
   const noTeams = teams.length === 0 && !teamsQuery.isPending;
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-slate-50">
       <AppHeader />
       <main className="mx-auto max-w-7xl px-4 py-6">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
@@ -217,29 +221,31 @@ export default function BoardPage() {
         </div>
 
         {noTeams && (
-          <div className={`${ui.panel} p-8 text-center`}>
-            <p className="text-sm font-medium text-slate-900">No teams yet</p>
-            <p className="mt-1 text-sm text-slate-500">
-              Create a team on the Teams tab before adding tickets.
-            </p>
+          <div className={ui.panel}>
+            <EmptyState
+              title="No teams yet"
+              description="Create a team on the Teams tab before adding tickets."
+            />
           </div>
         )}
 
         {selectedTeam && ticketsQuery.isPending && (
-          <p className="text-sm text-slate-500">Loading board…</p>
+          <div aria-busy="true" className="flex gap-4 overflow-x-auto pb-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className={`${ui.boardColumn} gap-2 p-3`}>
+                <Skeleton className="h-5 w-24" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+              </div>
+            ))}
+          </div>
         )}
 
         {selectedTeam && ticketsQuery.isError && (
-          <div>
-            <p className={ui.statusError}>Couldn’t load the board.</p>
-            <button
-              type="button"
-              className={`${ui.btn} ${ui.btnSm} mt-3`}
-              onClick={() => ticketsQuery.refetch()}
-            >
-              Retry
-            </button>
-          </div>
+          <ErrorState
+            message="Couldn’t load the board."
+            onRetry={() => ticketsQuery.refetch()}
+          />
         )}
 
         {selectedTeam && !ticketsQuery.isPending && !ticketsQuery.isError && (
@@ -271,7 +277,7 @@ export default function BoardPage() {
             <DragOverlay>
               {activeTicket ? (
                 <div className={`${ui.boardCard} shadow-lg`}>
-                  <span className={ui.badge}>{typeLabel(activeTicket.type)}</span>
+                  <TypeBadge type={activeTicket.type} />
                   <p className="mt-1 truncate text-sm font-medium">
                     {activeTicket.title}
                   </p>

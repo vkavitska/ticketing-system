@@ -4,6 +4,9 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import CommentsPanel from "../components/CommentsPanel";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
+import EmptyState from "../components/EmptyState";
+import ErrorState from "../components/ErrorState";
+import Skeleton from "../components/Skeleton";
 import { useToast } from "../components/Toast";
 import { useAuth } from "../lib/auth";
 import { ui } from "../lib/ui";
@@ -101,7 +104,7 @@ export default function TicketDetailPage() {
     (ticketQuery.error as unknown as ApiError)?.status === 404;
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-slate-50">
       <AppHeader />
       <main className="mx-auto max-w-5xl px-4 py-6">
         <Link className={`${ui.link} text-sm`} to="/tickets">
@@ -109,29 +112,41 @@ export default function TicketDetailPage() {
         </Link>
 
         {ticketQuery.isPending && (
-          <p className="mt-6 text-sm text-slate-500">Loading ticket…</p>
+          <div
+            aria-busy="true"
+            className="mt-4 grid gap-4 md:grid-cols-[1fr_20rem]"
+          >
+            <div className={`${ui.panel} space-y-3 p-5`}>
+              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-9 w-2/3" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+            <div className={`${ui.panel} space-y-3 p-5`}>
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          </div>
         )}
 
         {notFound && (
-          <div className={`${ui.panel} mt-6 p-8 text-center`}>
-            <p className="text-sm font-medium text-slate-900">Ticket not found</p>
-            <p className="mt-1 text-sm text-slate-500">
-              It may have been deleted.
-            </p>
+          <div className={`${ui.panel} mt-6`}>
+            <EmptyState
+              title="Ticket not found"
+              description="It may have been deleted."
+              action={
+                <Link className={`${ui.btn} ${ui.btnSm}`} to="/tickets">
+                  Back to tickets
+                </Link>
+              }
+            />
           </div>
         )}
 
         {ticketQuery.isError && !notFound && (
-          <div className="mt-6">
-            <p className={ui.statusError}>Couldn’t load the ticket.</p>
-            <button
-              type="button"
-              className={`${ui.btn} ${ui.btnSm} mt-3`}
-              onClick={() => ticketQuery.refetch()}
-            >
-              Retry
-            </button>
-          </div>
+          <ErrorState
+            message="Couldn’t load the ticket."
+            onRetry={() => ticketQuery.refetch()}
+          />
         )}
 
         {ticket && (

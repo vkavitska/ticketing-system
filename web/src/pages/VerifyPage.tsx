@@ -105,6 +105,10 @@ export default function VerifyPage() {
           <input
             className={`${ui.input} flex-1`}
             type="email"
+            inputMode="email"
+            autoComplete="email"
+            autoCapitalize="off"
+            spellCheck={false}
             aria-label="Email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}

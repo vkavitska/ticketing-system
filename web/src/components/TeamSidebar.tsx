@@ -1,3 +1,6 @@
+import EmptyState from "./EmptyState";
+import ErrorState from "./ErrorState";
+import Skeleton from "./Skeleton";
 import { ui } from "../lib/ui";
 import type { Team } from "../api/teams";
 
@@ -43,31 +46,22 @@ export default function TeamSidebar({
 
       <div className="p-2">
         {loading && (
-          <p className="px-3 py-6 text-center text-sm text-slate-500">
-            Loading teams…
-          </p>
+          <div aria-busy="true" className="flex flex-col gap-1 p-1">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-9 w-full" />
+            ))}
+          </div>
         )}
 
         {error && !loading && (
-          <div className="px-3 py-6 text-center">
-            <p className={ui.statusError}>Couldn&rsquo;t load teams.</p>
-            <button
-              type="button"
-              className={`${ui.btn} ${ui.btnSm} mt-3`}
-              onClick={onRetry}
-            >
-              Retry
-            </button>
-          </div>
+          <ErrorState message="Couldn’t load teams." onRetry={onRetry} />
         )}
 
         {!loading && !error && teams.length === 0 && (
-          <div className="px-3 py-8 text-center">
-            <p className="text-sm font-medium text-slate-900">No teams yet</p>
-            <p className="mt-1 text-sm text-slate-500">
-              Create your first team to get started.
-            </p>
-          </div>
+          <EmptyState
+            title="No teams yet"
+            description="Create your first team to get started."
+          />
         )}
 
         {!loading && !error && teams.length > 0 && (

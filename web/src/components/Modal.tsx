@@ -83,7 +83,7 @@ export default function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
       onMouseDown={(e) => {
         // Close only when the backdrop itself is clicked, not the dialog.
         if (e.target === e.currentTarget) onClose();
@@ -95,7 +95,7 @@ export default function Modal({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descId : undefined}
-        className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-lg"
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-6 shadow-xl"
       >
         <div className="flex items-start justify-between gap-4">
           <h2 id={titleId} className="text-lg font-bold">

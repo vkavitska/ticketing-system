@@ -3,8 +3,10 @@ import { useAuth } from "../lib/auth";
 import { ui } from "../lib/ui";
 
 const navLink = ({ isActive }: { isActive: boolean }) =>
-  `rounded-md px-2 py-1 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ${
-    isActive ? "text-slate-900" : "text-slate-500 hover:text-slate-900"
+  `rounded-md px-2.5 py-1 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+    isActive
+      ? "bg-indigo-50 text-indigo-700"
+      : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
   }`;
 
 /** Shared top bar: product mark, primary nav, and the current session. */
@@ -18,9 +20,11 @@ export default function AppHeader() {
   }
 
   return (
-    <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
+    <header className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200 bg-white/90 px-6 py-3 backdrop-blur">
       <div className="flex items-center gap-6">
-        <strong className="tracking-wide">TICKET TRACKER</strong>
+        <strong className="tracking-tight" translate="no">
+          TICKET TRACKER
+        </strong>
         <nav className="flex items-center gap-1" aria-label="Primary">
           <NavLink to="/teams" className={navLink}>
             Teams

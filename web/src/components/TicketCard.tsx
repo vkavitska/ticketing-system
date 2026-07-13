@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useDraggable } from "@dnd-kit/core";
 import { ui } from "../lib/ui";
-import { typeLabel } from "../lib/format";
+import { TypeBadge } from "./Badge";
 import type { Ticket } from "../api/tickets";
 
 interface Props {
@@ -40,7 +40,7 @@ export default function TicketCard({ ticket, epicTitle }: Props) {
           ⠿
         </button>
         <Link to={`/tickets/${ticket.id}`} className="block min-w-0 flex-1">
-          <span className={ui.badge}>{typeLabel(ticket.type)}</span>
+          <TypeBadge type={ticket.type} />
           <p className="mt-1 truncate text-sm font-medium">{ticket.title}</p>
           {epicTitle && (
             <p className="mt-0.5 truncate text-xs text-slate-500">{epicTitle}</p>
