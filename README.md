@@ -58,8 +58,6 @@ never committed; copy `.env.example` to `.env` and adjust.
 | `APP_BASE_URL`                             | Base URL used in email-verification links      | `http://localhost:8080`|
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_FROM`    | Outgoing mail. Dev uses the `mailhog` container | `mailhog:1025`        |
 
-> For QA/production email, set `SMTP_HOST=relay1.dataart.com` and the appropriate port.
-
 ## Technology choices
 
 Each tool is chosen for a specific job:
@@ -147,9 +145,9 @@ cd api && npm test    # backend — Vitest integration tests (needs the db conta
 The backend suite spins up a dedicated `ticketing_test` database and exercises
 the HTTP API end to end (auth, teams, epics, tickets, comments).
 
-> **Frontend tests are not set up yet** (`web`'s `npm test` currently has no
-> runner). Adding Vitest + React Testing Library is the remaining Milestone 7
-> work.
+> The frontend currently has no unit-test runner; it's verified end to end
+> against the API. Adding Vitest + React Testing Library is a possible future
+> enhancement.
 
 ## Adding a new feature
 
@@ -200,4 +198,4 @@ in the running app.
 - [x] **Milestone 4** — tickets & comments
 - [x] **Milestone 5** — Kanban board (drag & drop)
 - [x] **Milestone 6** — screen polish & UX states
-- [ ] Milestone 7 — automated tests & docs _(docs done; frontend test runner pending)_
+- [x] **Milestone 7** — automated tests & docs
