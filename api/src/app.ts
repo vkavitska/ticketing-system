@@ -5,6 +5,7 @@ import { AppError } from "./errors";
 import { authRoutes } from "./routes/auth";
 import { teamRoutes } from "./routes/teams";
 import { epicRoutes } from "./routes/epics";
+import { ticketRoutes } from "./routes/tickets";
 
 /**
  * Builds the Fastify application. Kept separate from the server bootstrap so
@@ -66,6 +67,9 @@ export function buildApp(): FastifyInstance {
 
   // Epics CRUD (all routes require authentication).
   app.register(epicRoutes);
+
+  // Tickets + comments (all routes require authentication).
+  app.register(ticketRoutes);
 
   return app;
 }
