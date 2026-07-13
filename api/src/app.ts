@@ -1,13 +1,42 @@
 import Fastify, { FastifyInstance } from "fastify";
+import { ZodError } from "zod";
 import { prisma } from "./db";
+import { AppError } from "./errors";
+import { authRoutes } from "./routes/auth";
 
 /**
  * Builds the Fastify application. Kept separate from the server bootstrap so
- * tests can construct the app without binding to a port.
+ * tests can construct the app (and use `inject`) without binding to a port.
  */
 export function buildApp(): FastifyInstance {
   const app = Fastify({
-    logger: true,
+    // Quiet logs during tests.
+    logger: process.env.NODE_ENV !== "test",
+  });
+
+  // Consistent error envelope: { error: { code, message, details? } }
+  app.setErrorHandler((error, request, reply) => {
+    if (error instanceof ZodError) {
+      reply.code(400);
+      return reply.send({
+        error: {
+          code: "validation_error",
+          message: "Validation failed",
+          details: error.flatten().fieldErrors,
+        },
+      });
+    }
+    if (error instanceof AppError) {
+      reply.code(error.statusCode);
+      return reply.send({
+        error: { code: error.code, message: error.message },
+      });
+    }
+    request.log.error(error);
+    reply.code(500);
+    return reply.send({
+      error: { code: "internal_error", message: "Internal server error" },
+    });
   });
 
   // Liveness: process is up. Public (no auth) per spec.
@@ -26,6 +55,9 @@ export function buildApp(): FastifyInstance {
       return { status: "not-ready" };
     }
   });
+
+  // Authentication routes (signup/verify/resend/login are public; /me is guarded).
+  app.register(authRoutes);
 
   return app;
 }
