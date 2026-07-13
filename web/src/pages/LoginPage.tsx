@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { login, resendVerification } from "../api/auth";
 import { useAuth } from "../lib/auth";
@@ -20,10 +20,23 @@ export default function LoginPage() {
     "idle",
   );
 
+  // Move focus to the verification prompt when it appears, so it isn't a
+  // silent change for keyboard and screen-reader users.
+  const verifyPromptRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (needsVerification) verifyPromptRef.current?.focus();
+  }, [needsVerification]);
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setNeedsVerification(false);
+
+    if (!email || !password) {
+      setError("Enter your email and password.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const { token, user } = await login(email, password);
@@ -68,6 +81,8 @@ export default function LoginPage() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="name@example.com"
           required
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? "login-error" : undefined}
         />
 
         <label className={ui.label} htmlFor="password">
@@ -81,9 +96,15 @@ export default function LoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? "login-error" : undefined}
         />
 
-        {error && <p className={ui.statusError}>{error}</p>}
+        {error && (
+          <p id="login-error" role="alert" className={ui.statusError}>
+            {error}
+          </p>
+        )}
 
         <button
           className={`${ui.btnPrimary} ${ui.btnBlock}`}
@@ -96,9 +117,15 @@ export default function LoginPage() {
 
       {needsVerification && (
         <div className="mt-4 border-t border-slate-200 pt-4 text-center">
-          <p className={ui.muted}>Account not verified?</p>
+          <p
+            ref={verifyPromptRef}
+            tabIndex={-1}
+            className={`${ui.muted} focus:outline-none`}
+          >
+            Account not verified?
+          </p>
           {resendState === "sent" ? (
-            <p className={ui.statusOk}>
+            <p role="status" className={ui.statusOk}>
               If an unverified account exists for that email, a new verification
               email has been sent.
             </p>
