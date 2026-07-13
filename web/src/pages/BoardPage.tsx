@@ -20,6 +20,7 @@ import Skeleton from "../components/Skeleton";
 import { TypeBadge } from "../components/Badge";
 import { useToast } from "../components/Toast";
 import { ui } from "../lib/ui";
+import { groupTicketsByState } from "../lib/board";
 import { stateLabel, typeLabel } from "../lib/format";
 import { listTeams } from "../api/teams";
 import { listEpics } from "../api/epics";
@@ -89,16 +90,7 @@ export default function BoardPage() {
   const tickets = useMemo(() => ticketsQuery.data ?? [], [ticketsQuery.data]);
 
   // Columns are derived from the query data — never a separate store.
-  const grouped = useMemo(() => {
-    const by = Object.fromEntries(
-      TICKET_STATES.map((s) => [s, [] as Ticket[]]),
-    ) as Record<TicketState, Ticket[]>;
-    for (const t of tickets) by[t.state]?.push(t);
-    for (const s of TICKET_STATES) {
-      by[s].sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt));
-    }
-    return by;
-  }, [tickets]);
+  const grouped = useMemo(() => groupTicketsByState(tickets), [tickets]);
 
   const activeTicket = activeId
     ? (tickets.find((t) => t.id === activeId) ?? null)
