@@ -4,7 +4,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import SignupPage from "./pages/SignupPage";
 import LoginPage from "./pages/LoginPage";
 import VerifyPage from "./pages/VerifyPage";
-import BoardPlaceholderPage from "./pages/BoardPlaceholderPage";
+import BoardPage from "./pages/BoardPage";
 import TeamsPage from "./pages/TeamsPage";
 import TicketsPage from "./pages/TicketsPage";
 import TicketDetailPage from "./pages/TicketDetailPage";
@@ -21,7 +21,7 @@ export default function App() {
             path="/"
             element={
               <ProtectedRoute>
-                <BoardPlaceholderPage />
+                <BoardPage />
               </ProtectedRoute>
             }
           />
