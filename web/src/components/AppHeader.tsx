@@ -25,6 +25,9 @@ export default function AppHeader() {
           <NavLink to="/teams" className={navLink}>
             Teams
           </NavLink>
+          <NavLink to="/tickets" className={navLink}>
+            Tickets
+          </NavLink>
           <NavLink to="/" end className={navLink}>
             Board
           </NavLink>

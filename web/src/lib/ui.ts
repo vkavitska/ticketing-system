@@ -7,6 +7,8 @@ export const ui = {
   label: "mt-4 mb-1.5 block text-xs font-semibold",
   input:
     "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-900 focus:outline-none",
+  select:
+    "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-900 focus:outline-none",
   muted: "text-slate-500",
   footer: "mt-5 text-center text-sm",
   link: "font-medium text-slate-900 underline underline-offset-2",
